@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var mongoose = require('mongoose');
-const { sortBy } = require('lodash');
+const { sortBy, stubObject } = require('lodash');
 
 // connect to DB
 mongoose.connect('mongodb://localhost:27017/csci2720');
@@ -28,14 +28,17 @@ var EventSchema = mongoose.Schema({
 
 var Event = mongoose.model('event', EventSchema);
 
-router.get('/events', (req, res, next) => {
-    res.redirect('./events/1');
-});
-
-router.get('/events/page/:page/sortBy/:sortBy', (req, res, next) => {
-    console.log(req.params.page, req.params.sortBy)
+router.get('/events/page/:page/sortBy/:sortBy/keyword/:keyword', (req, res, next) => {
+    console.log(req.params.page, req.params.sortBy, req.params.keyword)
+    let searchField = req.params.keyword.split('::')[0];
+    let searchQuery = req.params.keyword.split('::')[1];
+    let searchObj = {};
+    if(searchField.length){
+        searchObj[searchField] = {$regex: searchQuery};
+    }
+    console.log(searchObj)
     Event.find(
-        {},
+        searchObj,
         'event_summary event_location event_date event_org',
         function (err, e) {
             if(err)
@@ -49,23 +52,6 @@ router.get('/events/page/:page/sortBy/:sortBy', (req, res, next) => {
     ).skip((req.params.page - 1) * 10).limit(10).sort(req.params.sortBy);
 })
 
-
-router.get('/search/:keyword', (req, res, next) => {
-    Event.find(
-        {name: {'$regex' : req.params.keyword}},
-        'event_summary event_location event_date event_org',
-        function (err, e) {
-            if(err)
-            res.send(err);
-            console.log(e);
-            if(e){
-                res.send(e);
-            }else{
-                res.send({err: "No event found"});
-            }
-        }
-    );
-})
 
 
 module.exports = router
