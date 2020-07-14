@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require ('cors');
 var session = require('express-session')
+const bodyParser = require('body-parser');
 
 var apiRouter = require('./routes/api')
 
@@ -24,6 +25,7 @@ app.use(logger('dev'));
 // express parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({extended: false}));
 
 // cookie
 app.use(cookieParser());
