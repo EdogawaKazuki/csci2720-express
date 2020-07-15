@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var mongoose = require('mongoose');
+var https = require('https');
 const { sortBy, stubObject } = require('lodash');
 
 // connect to DB
@@ -13,17 +14,27 @@ db.once('open', () => {
 
 // Event schema
 var EventSchema = mongoose.Schema({
-    eventId: {
+    event_id: {
         type: Number,
         required: true,
         unique: true
     },
-    name: {
+    event_summary: {
         type: String,
         required: true
     },
-    loc: { type: String },
-    quota: { type: Number }
+    event_org: {
+        type: String,
+        required: true
+    },
+    event_location: {
+        type: String,
+        required: true
+    },
+    event_date: {
+        type: String,
+        required: true
+    },
 });
 
 // Comment schema
@@ -141,5 +152,115 @@ router.delete('/comments/:commentId', (req, res)=>{
         }
     ).remove()
 });
+
+// DELETE event
+router.delete('/event/:eventId', (req, res)=>{
+    console.log(req.params.eventId)
+    Event.findOne(
+        {event_id: Number(req.params.eventId)},
+        (err, e) => {
+            if(err){
+                res.send(err);
+                return;
+            }
+            res.send(e)
+        }
+    ).remove()
+});
+
+// update event
+router.put('/event/', (req, res) => {
+    console.log(req.body)
+    if(req.body.event_id && req.body.event_summary && 
+        req.body.event_org && req.body.event_date &&
+        req.body.event_location){
+            Event.findOne(
+                {event_id: Number(req.body.event_id)},
+                'event_id event_summary event_location event_date event_org',
+                (err, e) => {
+                    if(err)
+                        res.send(err);
+                    if(e){
+                        e.event_summary = req.body.event_summary;
+                        e.event_location = req.body.event_location;
+                        e.event_date = req.body.event_date;
+                        e.event_org = req.body.event_org;
+                        e.save()
+                        console.log(e)
+                        res.send(e);
+                    }else{
+                        res.send({err:"No Event Found"});
+                    }
+                }
+            );
+    }else{
+        res.send({err: 'Invalid params'});
+    }
+})
+
+// new event
+router.post('/event', (req, res) => {
+    console.log(req.body)
+    if(req.body.event_summary && 
+        req.body.event_org && req.body.event_date &&
+        req.body.event_location){
+        Event.findOne({}, 'event_id', (err, eMax) => {
+            if(err){
+                res.send(err);
+                return;
+            }
+            console.log(eMax.event_id)
+            var e = new Event ({
+                event_id: eMax.event_id + 1,
+                event_summary: req.body.event_summary,
+                event_org: req.body.event_org,
+                event_date: req.body.event_date,
+                event_location: req.body.event_location
+            });
+            e.save((err)=>{
+                if(err){
+                    res.send(err)
+                    return;
+                }
+                res.send(e);
+            });
+        }).sort('-event_id')
+    }else{
+        res.send({err: 'Invalid params'});
+    }
+
+})
+
+// flush data
+router.get('/event', (req, res) => {
+    console.log('flush Data')
+    let request = https.get('https://ogcef.one.gov.hk/event-api/eventList', (response) => {
+        let data = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+            data += chunk;
+        })
+        response.on('end', () => {
+            data = JSON.parse(data)
+            Event.find({}).remove();
+            for(let event of data){
+                if(event.event_location && event.event_summary &&
+                    event.event_org && event.event_date){
+                    var e = new Event ({
+                        event_id: event.event_id,
+                        event_summary: event.event_summary,
+                        event_org: event.event_org,
+                        event_date: event.event_date,
+                        event_location: event.event_location
+                    });
+                    e.save();
+                }
+            }
+            res.send({msg: 'success'});
+        })
+    })
+    
+})
+
 
 module.exports = router 
