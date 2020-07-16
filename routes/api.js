@@ -3,6 +3,7 @@ var router = express.Router();
 var mongoose = require('mongoose');
 var https = require('https');
 const { sortBy, stubObject } = require('lodash');
+const session = require('express-session');
 
 // connect to DB
 mongoose.connect('mongodb://localhost:27017/csci2720');
@@ -66,6 +67,10 @@ var Event = mongoose.model('event', EventSchema);
 var Comment = mongoose.model('comment', CommentSchema);
 
 router.get('/events/page/:page/sortBy/:sortBy/keyword/:keyword', (req, res, next) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin', sessionID: req.sessionID, login: req.session.loginStatus});
+        return;
+    }
     console.log(req.params.page, req.params.sortBy, req.params.keyword)
     let searchField = req.params.keyword.split('::')[0];
     let searchQuery = req.params.keyword.split('::')[1];
@@ -91,7 +96,11 @@ router.get('/events/page/:page/sortBy/:sortBy/keyword/:keyword', (req, res, next
     ).skip((req.params.page - 1) * 10).limit(10).sort(req.params.sortBy);
 })
 
-router.get('/comments/eventId/:eventId/page/:page', (req, res, next) =>{
+router.get('/comments/eventId/:eventId/page/:page', (req, res, next) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
     Comment.find(
         {"eventId": req.params.eventId},
         'commentId userId content date',
@@ -110,7 +119,11 @@ router.get('/comments/eventId/:eventId/page/:page', (req, res, next) =>{
 })
 
 // POST comment
-router.post('/comments', (req, res)=>{
+router.post('/comments', (req, res) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
     console.log(req.body)
     if(req.body.eventId && req.body.userId && req.body.content && req.body.date){
         Comment.count({}, (err, count) => {
@@ -138,9 +151,12 @@ router.post('/comments', (req, res)=>{
     }
 });
 
-
 // DELETE comment
-router.delete('/comments/:commentId', (req, res)=>{
+router.delete('/comments/:commentId', (req, res) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
     Comment.findOne(
         {commentId: req.params.commentId},
         (err, c) => {
@@ -154,7 +170,11 @@ router.delete('/comments/:commentId', (req, res)=>{
 });
 
 // DELETE event
-router.delete('/event/:eventId', (req, res)=>{
+router.delete('/event/:eventId', (req, res) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
     console.log(req.params.eventId)
     Event.findOne(
         {event_id: Number(req.params.eventId)},
@@ -169,7 +189,11 @@ router.delete('/event/:eventId', (req, res)=>{
 });
 
 // update event
-router.put('/event/', (req, res) => {
+router.put('/event', (req, res) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
     console.log(req.body)
     if(req.body.event_id && req.body.event_summary && 
         req.body.event_org && req.body.event_date &&
@@ -200,6 +224,10 @@ router.put('/event/', (req, res) => {
 
 // new event
 router.post('/event', (req, res) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
     console.log(req.body)
     if(req.body.event_summary && 
         req.body.event_org && req.body.event_date &&
@@ -233,6 +261,10 @@ router.post('/event', (req, res) => {
 
 // flush data
 router.get('/event', (req, res) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
     console.log('flush Data')
     let request = https.get('https://ogcef.one.gov.hk/event-api/eventList', (response) => {
         let data = '';
@@ -260,6 +292,15 @@ router.get('/event', (req, res) => {
         })
     })
     
+})
+
+// test
+router.get('/', (req, res) => {
+    if(!req.session.loginStatus){
+        res.send({err:'notLogin'});
+        return;
+    }
+    res.send({msg: 'logout', sessionId: req.sessionID, login: req.session.loginStatus});
 })
 
 

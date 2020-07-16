@@ -8,6 +8,7 @@ var session = require('express-session')
 const bodyParser = require('body-parser');
 
 var apiRouter = require('./routes/api')
+var indexRouter = require('./routes/index')
 
 var app = express();
 
@@ -16,7 +17,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 // allow cors
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+}));
 
 
 // logger
@@ -32,7 +36,8 @@ app.use(cookieParser());
 
 // session
 app.use(session({
-  secret: 'csci2720'
+  secret: 'csci2720',
+  cookie: { httpOnly: false }
 }))
 
 // static file
@@ -40,6 +45,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // router
 app.use('/api', apiRouter);
+app.use('/index', indexRouter)
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
