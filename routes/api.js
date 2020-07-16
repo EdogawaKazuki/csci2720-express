@@ -2,8 +2,6 @@ var express = require('express');
 var router = express.Router();
 var mongoose = require('mongoose');
 var https = require('https');
-const { sortBy, stubObject } = require('lodash');
-const session = require('express-session');
 
 // connect to DB
 mongoose.connect('mongodb://localhost:27017/csci2720');
@@ -51,6 +49,10 @@ var CommentSchema = mongoose.Schema({
     },
     userId: {
         type: Number,
+        required: true
+    },
+    userName: {
+        type: String,
         required: true
     },
     content: {
@@ -103,7 +105,7 @@ router.get('/comments/eventId/:eventId/page/:page', (req, res, next) => {
     }
     Comment.find(
         {"eventId": req.params.eventId},
-        'commentId userId content date',
+        'commentId userId userName content date',
         function (err, e) {
             if(err){
                 res.send(err);
@@ -125,7 +127,8 @@ router.post('/comments', (req, res) => {
         return;
     }
     console.log(req.body)
-    if(req.body.eventId && req.body.userId && req.body.content && req.body.date){
+    console.log(req.session.userId)
+    if(req.body.eventId && req.body.content && req.body.date){
         Comment.count({}, (err, count) => {
             if(err){
                 res.send(err);
@@ -133,8 +136,9 @@ router.post('/comments', (req, res) => {
             }
             var c = new Comment ({
                 commentId: count + 1,
-                eventId: req.body.eventId,
-                userId: req.body.userId,
+                eventId: req.body.eventId - 0,
+                userId: req.session.userId - 0,
+                userName: req.session.userName,
                 content: req.body.content,
                 date: req.body.date,
             });
@@ -158,7 +162,7 @@ router.delete('/comments/:commentId', (req, res) => {
         return;
     }
     Comment.findOne(
-        {commentId: req.params.commentId},
+        {commentId: req.params.commentId, userId: req.session.userId},
         (err, c) => {
             if(err){
                 res.send(err);
