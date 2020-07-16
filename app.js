@@ -63,4 +63,13 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+// connect to DB
+//mongoose.connect('mongodb://xyzhao7:x81203@localhost/xyzhao7');
+mongoose.connect('mongodb://localhost:27017/csci2720');
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'Connection errr:'));
+db.once('open', () => {
+  console.log("connection is open");
+})
+
 module.exports = app;
