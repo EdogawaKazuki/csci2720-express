@@ -57,8 +57,20 @@ var CommentSchema = mongoose.Schema({
     }
 });
 
+var FavoriteSchema = mongoose.Schema({
+    userId:{
+        type:Number,
+        required:true
+    },
+    eventId:{
+        type:Number,
+        required:true
+    }
+});
+
 var Event = mongoose.model('event', EventSchema);
 var Comment = mongoose.model('comment', CommentSchema);
+var Favorite = mongoose.model('favorite', FavoriteSchema);
 
 router.get('/events/page/:page/sortBy/:sortBy/keyword/:keyword', (req, res, next) => {
     if(!req.session.loginStatus){
@@ -289,6 +301,97 @@ router.get('/event', (req, res) => {
     })
     
 })
+
+//add to favorite
+router.post('/favorite',(req,res)=>{
+    Favorite.find(
+        {
+            "userId": req.session.userId,
+            "eventId":req.body.eventId
+        },
+        "userId eventId",
+        function(err,result){
+            console.log(result);
+            if(err){
+                res.send(err);
+                return;
+            }
+            else if(result.length != 0){
+                res.send({msg: "The event has already in your favorite list before!"});
+            }
+            else{
+                var f = new Favorite({
+                    userId: req.session.userId,
+                    eventId: req.body.eventId
+                });
+                f.save((err)=>{
+                    if(err){
+                        res.send(err);
+                        return;
+                    }
+                    else
+                        res.send({msg:"Successfully added to favorite list!"});
+                })
+            }
+        }
+    )
+})
+
+//get favorite events of a user
+router.get('/favorite', (req,res)=>{
+    Favorite.find(
+        {"userId": req.session.userId - 0},
+        "userId eventId",
+        function(err,f){
+            if(err){
+                res.send(err);
+                return;
+            }
+            if(f){
+                console.log(f)
+                var favoriteList=[];
+                var count = 0;
+                for (item of f){
+                    Event.find(
+                        {"event_id": item.eventId - 0},
+                        'event_id event_summary event_location event_date event_org',
+                        function(err,e){
+                            if(err){
+                                res.send(err);
+                                return
+                            }
+                            if(e){
+                                count += 1;
+                                favoriteList.push(e[0]);
+                                console.log(favoriteList)
+                                if(count == f.length)
+                                    res.send(favoriteList);
+                            }
+                        }
+                    );
+                }
+            }
+        }
+    );
+});
+
+
+router.delete('/favorite/eventId/:eventId',(req,res)=>{
+    Favorite.find(
+        {
+            "userId": req.session.userId,
+            "eventId": req.params.eventId
+        },
+        function(err,f){
+            if(err){
+                res.send(err);
+                return;
+            }
+            else
+                res.send(f);
+        }
+    ).remove();
+});
 
 // test
 router.get('/', (req, res) => {
