@@ -302,7 +302,7 @@ router.get('/event', (req, res) => {
     
 })
 
-//add to favorite
+// add to favorite
 router.post('/favorite',(req,res)=>{
     Favorite.find(
         {
@@ -337,7 +337,7 @@ router.post('/favorite',(req,res)=>{
     )
 })
 
-//get favorite events of a user
+// get favorite events of a user
 router.get('/favorite', (req,res)=>{
     Favorite.find(
         {"userId": req.session.userId - 0},
